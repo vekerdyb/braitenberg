@@ -13,7 +13,7 @@ canvas.style.border = '1px solid blue';
 var heatMap = ctx.getImageData(0, 0, canvas.width, canvas.height);
 var data = heatMap.data;
 
-var frequency = canvas.width / 8;
+var frequency = canvas.width / 5;
 
 for (var x = 0; x < canvas.width; x++) {
     for (var y = 0; y < canvas.height; y++) {
@@ -57,8 +57,8 @@ function Vehicle() {
     this.theta = this.theta0;
     this.sl = 0;
     this.sr = 0;
-    this.size = 20;
-    this.wheelDistance = 10; // todo
+    this.size = 10;
+    this.wheelDistance = 2; // todo
     this.x0 = randInt(canvas.width) - this.size;
     this.y0 = randInt(canvas.height) - this.size;
     this.x = this.x0;
@@ -69,21 +69,22 @@ function Vehicle() {
     };
 
     this.getHeading = function () {
-        return (this.sr - this.sl) / this.size + this.theta0;
+        return (_this.sr - _this.sl) / _this.size + _this.theta0;
     };
 
     this.activate = function (sensorValue1, sensorValue2) {
         // new speed
-        var leftMove = Math.exp(sensorValue1) * 5;
-        var rightMove = Math.exp(sensorValue2) * 5;
+        var leftMove = Math.exp(sensorValue1) * 2;
+        var rightMove = Math.exp(sensorValue2) * 2;
 
-        _this.x = Math.round((_this.getDistanceTravelled()) * Math.cos(_this.theta) + _this.x0);
-
-        _this.y = Math.round((_this.getDistanceTravelled()) * Math.sin(_this.theta) + _this.y0);
-
-        _this.theta = (_this.sr - _this.sl) / _this.wheelDistance + _this.theta0;
         _this.sl += leftMove;
         _this.sr += rightMove;
+
+        _this.x = Math.round((_this.getDistanceTravelled() + leftMove) * Math.cos(_this.theta) + _this.x0);
+
+        _this.y = Math.round((_this.getDistanceTravelled() + rightMove) * Math.sin(_this.theta) + _this.y0);
+
+        _this.theta = (_this.sr - _this.sl) / _this.wheelDistance + _this.theta0;
     };
 
     this.reset = function () {
@@ -111,7 +112,7 @@ function Vehicle() {
 
 
 var vehicles = [];
-var numVehicles = 1;
+var numVehicles = 100;
 
 for (var i = 0; i < numVehicles; i++) {
     vehicles.push(new Vehicle());
@@ -152,9 +153,14 @@ function step(timestamp) {
 
         var sensor1Pos = vehicle.getSensor1Position();
         var sensor2Pos = vehicle.getSensor2Position();
-        ctx.putImageData(sensor, sensor1Pos.x, sensor1Pos.y);
-        ctx.putImageData(sensor, sensor2Pos.x, sensor2Pos.y);
+        try {
+            ctx.putImageData(sensor, sensor1Pos.x, sensor1Pos.y);
+            ctx.putImageData(sensor, sensor2Pos.x, sensor2Pos.y);
+        } catch (e) {
+
+        }
         // vehicle.theta = (vehicle.theta + 0.1) % (Math.PI * 2);
+        vehicle.reset();
         vehicle.activate(
             getChannel(heatMap.data, sensor1Pos.x, sensor1Pos.y, 3) / 255,
             getChannel(heatMap.data, sensor2Pos.x, sensor2Pos.y, 3) / 255
