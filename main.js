@@ -27,7 +27,6 @@ for (var x = 0; x < canvas.width; x++) {
 }
 
 
-
 function showHeatmap(imgData) {
     ctx.putImageData(imgData, 0, 0);
 }
@@ -48,51 +47,71 @@ function toggleHeatmap() {
 heatMapCheckBox.addEventListener('change', toggleHeatmap);
 showHeatmap(heatMap);
 
+function randInt(max) {
+    return Math.round(Math.random() * max);
+}
+
 function Vehicle() {
     var _this = this;
-    this.vx = Math.random() * 2 - 1;
-    this.vy = Math.random() * 2 - 1;
-    this.size = 25;
-    this.x = Math.round(Math.random() * canvas.width - this.size);
-    this.y = Math.round(Math.random() * canvas.height - this.size);
+    this.theta0 = Math.random() * 4 * Math.PI;
+    this.theta = this.theta0;
+    this.sl = 0;
+    this.sr = 0;
+    this.size = 20;
+    this.wheelDistance = 10; // todo
+    this.x0 = randInt(canvas.width) - this.size;
+    this.y0 = randInt(canvas.height) - this.size;
+    this.x = this.x0;
+    this.y = this.y0;
 
-    this.activate = function(sensorValue1, sensorValue2) {
+    this.getDistanceTravelled = function () {
+        return (_this.sl + _this.sr) / 2;
+    };
+
+    this.getHeading = function () {
+        return (this.sr - this.sl) / this.size + this.theta0;
+    };
+
+    this.activate = function (sensorValue1, sensorValue2) {
         // new speed
-        var newVx = Math.exp(sensorValue1 * 1.8) - 0.1;
-        var newVy = Math.exp(sensorValue2 * 1.8) - 0.1;
+        var leftMove = Math.exp(sensorValue1) * 5;
+        var rightMove = Math.exp(sensorValue2) * 5;
 
-        // keep current direction
-        if (_this.vx < 0) {
-            _this.vx = -newVx;
-        } else {
-            _this.vx = newVx;
-        }
-        if (_this.vy < 0) {
-            _this.vy = -newVy;
-        } else {
-            _this.vy = newVy;
-        }
+        _this.x = Math.round((_this.getDistanceTravelled()) * Math.cos(_this.theta) + _this.x0);
 
-        // turn back at walls
-        if ((Math.round(_this.x + _this.vx) + _this.size >= canvas.width) ||
-            (_this.x + _this.vx < 0)) {
-            _this.vx = - _this.vx;
-        } else {
-            _this.x = Math.round(_this.x + _this.vx);
-        }
+        _this.y = Math.round((_this.getDistanceTravelled()) * Math.sin(_this.theta) + _this.y0);
 
-        if ((Math.round(_this.y + _this.vy) + _this.size >= canvas.height) ||
-            (_this.y + _this.vy < 0)) {
-            _this.vy = - _this.vy;
-        } else {
-            _this.y = Math.round(_this.y + _this.vy);
-        }
-    }
+        _this.theta = (_this.sr - _this.sl) / _this.wheelDistance + _this.theta0;
+        _this.sl += leftMove;
+        _this.sr += rightMove;
+    };
+
+    this.reset = function () {
+        _this.x0 = _this.x;
+        _this.y0 = _this.y;
+        _this.theta0 = _this.theta;
+        _this.sr = 0;
+        _this.sl = 0;
+    };
+
+    this.getSensor1Position = function () {
+        return {
+            x: Math.round(_this.x - Math.cos(_this.theta - Math.PI / 3) * (_this.size - 2)),
+            y: Math.round(_this.y - Math.sin(_this.theta - Math.PI / 3) * (_this.size - 2))
+        };
+    };
+
+    this.getSensor2Position = function () {
+        return {
+            x: Math.round(_this.x - Math.cos(_this.theta + Math.PI / 3) * (_this.size - 2)),
+            y: Math.round(_this.y - Math.sin(_this.theta + Math.PI / 3) * (_this.size - 2))
+        };
+    };
 }
 
 
 var vehicles = [];
-var numVehicles = 10;
+var numVehicles = 1;
 
 for (var i = 0; i < numVehicles; i++) {
     vehicles.push(new Vehicle());
@@ -104,6 +123,13 @@ function getChannel(imageData, x, y, channel) {
     return imageData[(x + y * canvas.width) * 4 + channel];
 }
 
+var sensor = ctx.createImageData(1, 1);
+var d = sensor.data;                        // only do this once per page
+d[0] = 255;
+d[1] = 255;
+d[2] = 255;
+d[3] = 255;
+
 function step(timestamp) {
     if (heatMapCheckBox.checked) {
         showHeatmap(heatMap);
@@ -111,18 +137,34 @@ function step(timestamp) {
 
     for (var i = 0; i < numVehicles; i++) {
         var vehicle = vehicles[i];
+        ctx.beginPath();
+        ctx.arc(vehicle.x, vehicle.y, vehicle.size, 0, 2 * Math.PI, false);
         ctx.fillStyle = "black";
-        ctx.fillRect(vehicle.x, vehicle.y, vehicle.size, vehicle.size);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.strokeStyle = "white";
+        ctx.moveTo(vehicle.x, vehicle.y);
+        ctx.lineTo(
+            vehicle.x + Math.cos(vehicle.theta) * vehicle.size,
+            vehicle.y + Math.sin(vehicle.theta) * vehicle.size
+        );
+        ctx.stroke();
+
+        var sensor1Pos = vehicle.getSensor1Position();
+        var sensor2Pos = vehicle.getSensor2Position();
+        ctx.putImageData(sensor, sensor1Pos.x, sensor1Pos.y);
+        ctx.putImageData(sensor, sensor2Pos.x, sensor2Pos.y);
+        // vehicle.theta = (vehicle.theta + 0.1) % (Math.PI * 2);
         vehicle.activate(
-            getChannel(heatMap.data, vehicle.x, vehicle.y, 3) / 255,
-            getChannel(heatMap.data, vehicle.x, vehicle.y + vehicle.size, 3) / 255
+            getChannel(heatMap.data, sensor1Pos.x, sensor1Pos.y, 3) / 255,
+            getChannel(heatMap.data, sensor2Pos.x, sensor2Pos.y, 3) / 255
         );
     }
-
+    // stopped = true;
     if (!stopped) {
         setTimeout(
             requestAnimationFrame.bind(this, step),
-            1000/60
+            1000 / 60
         );
     }
 }
