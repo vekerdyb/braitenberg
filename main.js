@@ -61,14 +61,13 @@ function addHeatData(x, y, value) {
 function getHeatData(x, y) {
     return heatData[x + ',' + y];
 }
+a = 0;
 
 for (var x = 0; x < canvas.width; x++) {
     for (var y = 0; y < canvas.height; y++) {
-        var a = simplex.noise2D(x / frequency, y / frequency) * 0.9 + 0.8;
+        var a = simplex.noise2D(x / frequency, y / frequency);
         var b = simplex.noise2D(x / frequency, y / frequency);
 
-
-        a = 0.4 * a;
         // https://stackoverflow.com/a/27263918
         var rgb = hslToRgb(a, 1, 0.5);
 
@@ -129,8 +128,8 @@ function Vehicle() {
 
     this.activate = function (sensorValue1, sensorValue2) {
         // new speed
-        var leftMove = Math.exp(sensorValue1);
-        var rightMove = Math.exp(sensorValue2);
+        var leftMove = Math.exp(sensorValue2 - 1);
+        var rightMove = Math.exp(sensorValue1 - 1);
 
         _this.sl += leftMove;
         _this.sr += rightMove;
