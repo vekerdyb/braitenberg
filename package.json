@@ -4,8 +4,18 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "prestart": "rimraf build .fusebox",
+    "start": "node ./fuse.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "fuse-box": "^2.2.0",
+    "rimraf": "^2.6.1",
+    "typescript": "^2.4.1"
+  },
+  "dependencies": {
+    "simplex-noise": "^2.3.0"
+  }
 }

@@ -1,9 +1,14 @@
+import * as SimplexNoise from 'simplex-noise';
+
 var simplex = new SimplexNoise();
 
-var canvas = document.getElementById('canvas');
+var canvasElem = document.createElement('canvas');
+var canvas = document.body.appendChild(canvasElem);
 var ctx = canvas.getContext('2d');
 
-var heatMapCheckBox = document.getElementById('showHeatmap');
+var heatMapCheckBox = {
+    checked: true
+}
 
 canvas.width = 800;
 canvas.height = 800;
@@ -69,7 +74,7 @@ for (var x = 0; x < canvas.width; x++) {
         var b = simplex.noise2D(x / frequency, y / frequency);
 
         // https://stackoverflow.com/a/27263918
-        var rgb = hslToRgb(a, 1, 0.5);
+        // var rgb = hslToRgb(a, 1, 0.2);
 
         addHeatData(x, y, a);
 
@@ -98,7 +103,6 @@ function toggleHeatmap() {
     }
 }
 
-heatMapCheckBox.addEventListener('change', toggleHeatmap);
 showHeatmap(heatMap);
 
 function randInt(max) {
@@ -140,7 +144,6 @@ function Vehicle() {
         _this.x = distance * Math.cos(_this.theta) + _this.x0;
 
         _this.y = distance * Math.sin(_this.theta) + _this.y0;
-
 
     };
 
@@ -197,10 +200,10 @@ function step(timestamp) {
         var vehicle = vehicles[i];
         ctx.beginPath();
         ctx.arc(vehicle.x, vehicle.y, vehicle.size, 0, 2 * Math.PI, false);
-        ctx.fillStyle = "rgba(0,0,0,1)";
+        ctx.fillStyle = 'rgba(0,0,0,1)';
         ctx.fill();
         ctx.beginPath();
-        ctx.strokeStyle = "white";
+        ctx.strokeStyle = 'white';
         ctx.moveTo(vehicle.x, vehicle.y);
         ctx.lineTo(
             vehicle.x + Math.cos(vehicle.theta) * vehicle.size,

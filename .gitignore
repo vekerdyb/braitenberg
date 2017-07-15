@@ -1,2 +1,4 @@
-node_modules/
-.idea/
+.fusebox
+.idea
+build
+node_modules
